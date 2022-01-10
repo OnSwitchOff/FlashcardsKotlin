@@ -9,9 +9,9 @@ fun main() {
 
 fun menu2(){
     val flashcards = FlashCards()
-    println("Input the action (add, remove, import, export, ask, exit):")
     while (true)
     {
+        println("Input the action (add, remove, import, export, ask, exit):")
         when (readLine()!!) {
             "add" -> addCommand(flashcards)
             "remove" -> removeCommand(flashcards)
@@ -31,7 +31,7 @@ fun askCommand(flashcards: FlashCards) {
     println("How many times to ask?")
     val n = readLine()!!.toInt()
     for (i in 0 until n){
-        val card: Card = flashcards.getRandomCard()
+        val card: Card = flashcards.getCardN(i)
         println("Print the definition of \"${card.front}\":")
         val answer = readLine()!!
         val filtred = flashcards.cards.filter { it.value.checkAnswer(answer) }
@@ -84,6 +84,7 @@ fun addCommand(flashcards: FlashCards) {
             println("The definition \"$back\" already exists")
         } else {
             flashcards.addCard(Card(front, back))
+            println("The pair (\"$front\":\"$back\") has been added.")
         }
     }
 }
@@ -119,7 +120,7 @@ fun menu(){
 
 class Card{
     val front: String
-    val back: String
+    var back: String
     constructor() {
         this.front = readLine()!!
         this.back = readLine()!!
@@ -142,18 +143,18 @@ class Card{
 class FlashCards() {
     val cards: MutableMap<Int,Card> = mutableMapOf()
     fun addCard(card: Card) {
-        cards[cards.size] = card
+        cards[(cards.maxByOrNull { it.key }?.key ?: -1) + 1] = card
     }
     fun checkForExistTerm(s: String): Boolean {
         if (cards.any{ it.value.front.equals(s, ignoreCase = false) }) {
-            println("The term \"$s\" already exists. Try again:")
+            //println("The term \"$s\" already exists. Try again:")
             return true
         }
         return false
     }
     fun checkForExistDefinition(d: String): Boolean {
         if (cards.any{ it.value.back.equals(d, ignoreCase = false) }) {
-            println("The definition \"$d\" already exists. Try again:")
+            //println("The definition \"$d\" already exists. Try again:")
             return true
         }
         return false
@@ -164,12 +165,20 @@ class FlashCards() {
     }
 
     fun load(file: File) {
-        cards.clear()
+        //println(cards.size)
+        var j = 0
         val lines = file.readLines()
         for (i in 0 until lines.lastIndex step 2) {
-            addCard(Card(lines[i],lines[i + 1]))
+            if (checkForExistTerm(lines[i])) {
+                cards.filterValues { it.front == lines[i] }.values.first().back = lines[i + 1]
+            } else {
+                j++
+                addCard(Card(lines[i],lines[i + 1]))
+            }
         }
-        println("${cards.size} cards have been loaded.")
+        //lines.forEach { println(it) }
+        println("$j cards have been loaded.")
+        //println(cards.size)
     }
 
     fun save(file: File) {
@@ -178,10 +187,32 @@ class FlashCards() {
             file.appendText(it.value.front + "\n")
             file.appendText(it.value.back + "\n")
         }
+        println("${cards.size} cards have been saved.")
     }
 
     fun getRandomCard(): Card {
-        val k: Int = Random.nextInt(cards.size)
-        return cards[k]!!
+        val randomGenerator42 = Random(42)
+        val k: Int = randomGenerator42.nextInt(cards.size)
+        var i = 0
+        var result = Card("","")
+        for (card in cards){
+            if (i == k) {
+                result = card.value
+            }
+            i++
+        }
+        return result
+    }
+
+    fun getCardN(i: Int): Card {
+        var j = 0
+        var result= Card("","")
+        for (card in cards){
+            if (i == j) {
+                result = card.value
+            }
+            j++
+        }
+        return result
     }
 }
